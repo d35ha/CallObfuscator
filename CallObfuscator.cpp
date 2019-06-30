@@ -112,7 +112,7 @@ INT main(INT argc, CHAR** argv){
 			return FALSE;
 		};
 
-        PIMAGE_IMPORT_DESCRIPTOR lpImportData = (PIMAGE_IMPORT_DESCRIPTOR)((DWORD_PTR)lpPeFileInfo->lpDataBuffer + dwImportBaseOffset);
+        	PIMAGE_IMPORT_DESCRIPTOR lpImportData = (PIMAGE_IMPORT_DESCRIPTOR)((DWORD_PTR)lpPeFileInfo->lpDataBuffer + dwImportBaseOffset);
 		while (lpImportData->Name != NULL)
 		{
 			if (!Utils::IsValidReadPtr(
@@ -850,5 +850,6 @@ INT main(INT argc, CHAR** argv){
     {
         Utils::Printf::Info("%s [in_file] [out_file] [target_api_0],[new_api_0] [target_api_1],[new_api_1] ...\n", argv[0]);
         return TRUE;
-	};
+
+    };
 };
