@@ -69,5 +69,5 @@ On the other side, for tools like x64dbg the shown api names will only depend on
 * It can be used multiple times on the same PE</br>
 
 # Binaries
-[CallObf32.exe](https://github.com/d35ha/CallObfuscator/raw/master/Binaries/CallObf32.exe)</br>
-[CallObf64.exe](https://github.com/d35ha/CallObfuscator/raw/master/Binaries/CallObf64.exe)</br>
+* [CallObf32.exe](https://github.com/d35ha/CallObfuscator/raw/master/Binaries/CallObf32.exe)</br>
+* [CallObf64.exe](https://github.com/d35ha/CallObfuscator/raw/master/Binaries/CallObf64.exe)</br>
