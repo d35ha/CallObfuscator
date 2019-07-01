@@ -65,6 +65,7 @@ On the other side, for tools like x64dbg the shown api names will only depend on
 ![pic9](https://github.com/d35ha/CallObfuscator/blob/master/Images/pic9.PNG)</br>
 
 # Additional
+* Dumping the obfuscated PE out from memory won't deobfuscate it, because the manipulated IAT will be the same</br>
 * The tool will try to use the code cave for the written shellcode if it's not enough, it will create a new section for it</br>
 * It can be used multiple times on the same PE</br>
 * Tested only on Windows 10 x64</br>
