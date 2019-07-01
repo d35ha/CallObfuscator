@@ -311,8 +311,8 @@ INT main(INT argc, CHAR** argv){
 				a8: 48 89 02                mov    QWORD PTR [rdx],rax
 				ab: 48 83 c3 04             add    rbx,0x4
 				af: eb c9                   jmp    0x7a
-				b1: 41 c7 07 ff ff ff ff    mov    DWORD PTR [r15],0xffffffff
-				b8: 41 c6 47 04 ff          mov    BYTE PTR [r15+0x4],0xff
+				b1: 41 c7 07 ff ff ff ff    mov    DWORD PTR [r15],<first_original_four_bytes>
+				b8: 41 c6 47 04 ff          mov    BYTE PTR [r15+0x4],<fifth_original_byte>
 				bd: 41 ff e7                jmp    r15
 				c0: cc                      int3
 				c1: e8 b3 ff ff ff          call   0x79
