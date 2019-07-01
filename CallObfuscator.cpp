@@ -467,7 +467,9 @@ INT main(INT argc, CHAR** argv){
 		PIMAGE_SECTION_HEADER lpCodeSection = NULL;
 		PIMAGE_SECTION_HEADER lpHeaderSection = IMAGE_FIRST_SECTION(lpNtHeader);
 		for (DWORD dwSecIndex = 0; dwSecIndex < lpNtHeader->FileHeader.NumberOfSections; dwSecIndex++) {
-			if (lpHeaderSection[dwSecIndex].VirtualAddress == lpNtHeader->OptionalHeader.BaseOfCode)
+			if (lpNtHeader->OptionalHeader.AddressOfEntryPoint >= lpHeaderSection[dwSecIndex].VirtualAddress
+				&& lpNtHeader->OptionalHeader.AddressOfEntryPoint < lpHeaderSection[dwSecIndex].VirtualAddress +
+				lpHeaderSection[dwSecIndex].Misc.VirtualSize)
 			{
 				lpCodeSection = &lpHeaderSection[dwSecIndex];
 				lpHeaderSection[dwSecIndex].Characteristics |= IMAGE_SCN_MEM_WRITE;
