@@ -19,8 +19,8 @@ INT main(INT argc, CHAR** argv){
 
     if (argc >= 4){
 
-        LPCSTR szInFileName = argv[1];
-        LPCSTR szOutFileName = argv[2];
+        	LPCSTR szInFileName = argv[1];
+        	LPCSTR szOutFileName = argv[2];
 
 		std::vector<ObfuscateByName> ObfuscateByNameArr;
 		std::vector<ReplaceApi> ReplaceApiArr;
