@@ -67,7 +67,7 @@ On the other side, for tools like x64dbg the shown api names will only depend on
 # Additional
 * Dumping the obfuscated PE out from memory won't deobfuscate it, because the manipulated IAT will be the same</br>
 * The tool will try to use the code cave for the written shellcode if it's not enough, it will create a new section for it</br>
-* It can be used multiple times on the same PE</br>
+* It can be used multiple times on the same obfuscated PE</br>
 * Tested only on Windows 10 x64</br>
 * Get source with `git clone --recursive https://github.com/d35ha/CallObfuscator`</br>
 * Download binaries from the [Release Section](https://github.com/d35ha/CallObfuscator/releases)
