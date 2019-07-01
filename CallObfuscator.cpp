@@ -127,7 +127,7 @@ INT main(INT argc, CHAR** argv){
 			DWORD dwLibNameOffset = lpImportData->Name;
 			if (!Utils::RvaToOffset(lpNtHeader, dwLibNameOffset, &dwLibNameOffset))
 			{
-				Utils::Printf::Fail("Unable to get the IMAGE_DIRECTORY_ENTRY_IMPORT table information");
+				Utils::Printf::Fail("Unable to get the imported library name");
 				return FALSE;
 			};
 			PCHAR szDllName = (PCHAR)((DWORD_PTR)lpPeFileInfo->lpDataBuffer + dwLibNameOffset);
@@ -137,7 +137,7 @@ INT main(INT argc, CHAR** argv){
 				sizeof(".dll")
 			))
 			{
-				Utils::Printf::Fail("Invalid import directory");
+				Utils::Printf::Fail("Invalid library name");
 				return FALSE;
 			};
 			
