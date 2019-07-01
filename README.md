@@ -17,7 +17,7 @@ Build this code sample</br>
 
 int main() {
 	SetLastError(5);
-	printf("Last error is %d\n", GetLastError(5));
+	printf("Last error is %d\n", GetLastError());
 	return 0;
 };
 ```
