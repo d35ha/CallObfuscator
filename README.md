@@ -69,9 +69,5 @@ On the other side, for tools like x64dbg the shown api names will only depend on
 * The tool will try to use the code cave for the written shellcode if it's not enough, it will create a new section for it</br>
 * It can be used multiple times on the same obfuscated PE</br>
 * Tested only on Windows 10 x64</br>
-* For unknown reason, when the PE is built by `gcc` without the optimization flags, tools like `dumpbin` and `objdump` report bad PE file even that it runs normally without issues</br>
-
-![pic10](https://github.com/d35ha/CallObfuscator/blob/master/Images/pic10.PNG)</br>
-
 * Get source with `git clone --recursive https://github.com/d35ha/CallObfuscator`</br>
 * Download binaries from the [Release Section](https://github.com/d35ha/CallObfuscator/releases)
