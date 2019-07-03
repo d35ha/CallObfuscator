@@ -4,6 +4,7 @@ bits 64
 Init:
     pop     r15
     sub     r15, 5h
+    sub     rsp, 28h
     push    TEB_PPEB_OFFSET
     pop     rax
     gs mov  rdx, [rax]
@@ -41,7 +42,9 @@ FindGetProcAddr:
     add     rdi, rbp
     push    rdx
     pop     rsi
-    mov     rbp, qword [rsi + LDR_MODULE_BASE_OFFSET]
+    mov     rbp, [rsi + LDR_MODULE_BASE_OFFSET]
+    push    rsi
+    pop     r14
     jmp     GetApisArray
 ApisArray:
     pop     rbx
@@ -51,7 +54,7 @@ ApisArrayLoop:
     je      ApisArrayLoopEnd
 LdrLoop:
     mov     rsi, [rsi]
-    mov     rcx, qword [rsi + LDR_MODULE_BASE_OFFSET]
+    mov     rcx, [rsi + LDR_MODULE_BASE_OFFSET]
     test    rcx, rcx
     jz      FatalExit
     push    rbx
@@ -68,10 +71,12 @@ GetThunkLoop:
     mov     edx, [rbx]
     add     rdx, rbp
     mov     qword [rdx], rax
+    push    r14
+    pop     rsi
     add     rbx, 4h
-LdrLoopEnd:
     jmp     ApisArrayLoop
 ApisArrayLoopEnd:
+    add     rsp, 28h
     mov     dword [r15], FIRST_ORIGINAL_FOUR_BYTES
     mov     byte [r15 + 4], FIFTH_ORIGINAL_BYTE
     jmp     r15
