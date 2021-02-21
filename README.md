@@ -131,4 +131,5 @@ On the other side, for tools like x64dbg the shown api names will only depend on
 * Shellcode obfuscation (probably with [obfusion](https://github.com/kgretzky/obfusion)).
 * Support the delay-loaded symbols.
 * Minimize the created section size.
+* Compile time hashing.
 * Better testing.
